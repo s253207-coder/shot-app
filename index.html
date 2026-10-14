@@ -1,0 +1,1419 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="8スポット">
+<title>8スポットシュート</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: date bar on top, three tabs (記録 / 順位 / 部員). On wide screens the entry table and the court sit side by side. */
+:root {
+  --bg: #F2F4F7;
+  --surface: #FFFFFF;
+  --fg: #17202B;
+  --muted: #566272;
+  --line: #CBD3DD;
+  --track: #E3E8EE;
+  --court: #E8ECF1;
+  --court-line: #8C99AA;
+  --sel: #FFF1E8;
+  --accent: #E8590C;
+  --accent-text: #C2410C;
+  --accent-fg: #FFFFFF;
+  --two: #2B8A54;
+  --three: #1C6DC4;
+  --ft: #7B4FC9;
+  --on-tint: #FFFFFF;
+  --good: #1F7A4D;
+  --warn: #B54708;
+  --danger: #B42318;
+  --s-all: #E8590C; --s-two: #2B8A54; --s-three: #1C6DC4;
+  --font-display: "Dela Gothic One", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10151C; --surface: #19212B; --fg: #E9EDF2; --muted: #9AA7B6; --line: #2D3846;
+    --track: #2A3441; --court: #16202B; --court-line: #5E6E82; --sel: #2A2018;
+    --accent: #FF7A33; --accent-text: #FF8F52; --accent-fg: #10151C;
+    --two: #4CC38A; --three: #5AA9FF; --ft: #B79CFF; --on-tint: #0B1118;
+    --good: #5BD39A; --warn: #FFB066; --danger: #FF8A80;
+    --s-all: #D95926; --s-two: #199E70; --s-three: #3987E5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10151C; --surface: #19212B; --fg: #E9EDF2; --muted: #9AA7B6; --line: #2D3846;
+  --track: #2A3441; --court: #16202B; --court-line: #5E6E82; --sel: #2A2018;
+  --accent: #FF7A33; --accent-text: #FF8F52; --accent-fg: #10151C;
+  --two: #4CC38A; --three: #5AA9FF; --ft: #B79CFF; --on-tint: #0B1118;
+  --good: #5BD39A; --warn: #FFB066; --danger: #FF8A80;
+  --s-all: #D95926; --s-two: #199E70; --s-three: #3987E5;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+  padding-inline: 16px; padding-block: 20px 56px;
+}
+h1, h2, h3, p, dl, dd, figure, ul, ol { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+button:disabled, input:disabled, textarea:disabled { cursor: default; opacity: .5; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, .spot:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.wrap { max-width: 1000px; margin-inline: auto; display: grid; gap: 20px; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 8vw, 40px); line-height: 1.15; color: var(--accent-text); text-wrap: balance; }
+.lede { color: var(--muted); max-width: 46ch; margin-top: 6px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 16px; }
+.icon { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 22px; line-height: 1; }
+.chip { min-height: 44px; padding-inline: 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; }
+input[type="date"], input[type="text"], textarea {
+  font: inherit; font-size: 16px; color: var(--fg); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-height: 44px;
+}
+.recent { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center; font-size: 13px; color: var(--muted); }
+.recent .chip { min-height: 36px; padding-inline: 10px; font-size: 13px; }
+.chip[aria-current="true"], .chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.status { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 20px; }
+
+.tabs { display: flex; border-bottom: 2px solid var(--line); gap: 4px; }
+.tab { flex: 1; min-height: 48px; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; font-weight: 700; font-size: 15px; padding-inline: 2px; white-space: nowrap; color: var(--muted); }
+.tab[aria-selected="true"] { color: var(--accent-text); border-bottom-color: var(--accent); }
+
+.pane { display: grid; gap: 22px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+.col { display: grid; gap: 22px; align-content: start; min-width: 0; }
+@media (min-width: 880px) { .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; } }
+
+.notice { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 10px; justify-items: start; }
+.notice p { max-width: 46ch; }
+.members { display: flex; flex-wrap: wrap; gap: 8px; }
+.members .chip small { font-weight: 500; font-size: 11px; margin-left: 6px; opacity: .8; }
+
+.summary { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.avg-label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .06em; }
+.avg-num { font-family: var(--font-display); font-size: clamp(56px, 17vw, 84px); line-height: 1; font-variant-numeric: tabular-nums; }
+.avg-unit { font-family: var(--font-display); font-size: 28px; color: var(--muted); margin-left: 2px; }
+.facts { display: grid; gap: 2px; font-size: 14px; min-width: 190px; }
+.facts div { display: flex; gap: 14px; justify-content: space-between; }
+.facts dt { color: var(--muted); }
+.facts dd { font-weight: 700; font-variant-numeric: tabular-nums; }
+.note { flex-basis: 100%; font-size: 12.5px; color: var(--muted); }
+
+.sec { font-size: 14px; font-weight: 700; letter-spacing: .06em; color: var(--muted); padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.hint { font-size: 13px; color: var(--muted); padding-top: 8px; }
+.badge { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; color: var(--on-tint); flex: none; }
+.badge.k2 { background: var(--two); } .badge.k3 { background: var(--three); }
+.badge.k1 { background: var(--ft); }
+.rname { display: grid; min-width: 0; }
+.n { font-weight: 700; overflow-wrap: anywhere; }
+.n small { font-weight: 500; font-size: 12px; color: var(--muted); margin-left: 6px; }
+.d { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rv { font-family: var(--font-display); font-size: 20px; font-variant-numeric: tabular-nums; }
+
+.ehead, .erow { display: grid; grid-template-columns: 28px minmax(0, 1fr) 64px 64px; column-gap: 8px; align-items: center; }
+.ehead { font-size: 12px; color: var(--muted); font-weight: 700; padding: 8px 0 4px; text-align: center; }
+.erow { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.erow[aria-current="true"] { background: var(--sel); }
+.erow .rname { text-align: left; cursor: pointer; min-height: 44px; align-content: center; }
+.erow input[type="number"] {
+  width: 100%; min-height: 44px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--fg); font: inherit; font-size: 18px; font-weight: 700;
+  text-align: center; padding: 0 4px; font-variant-numeric: tabular-nums;
+}
+.delwrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-top: 12px; font-size: 14px; }
+.linkbtn { background: none; border: 0; padding: 10px 4px; min-height: 44px; color: var(--muted); text-decoration: underline; }
+.danger { min-height: 44px; padding-inline: 14px; border-radius: 10px; border: 1px solid var(--danger); background: transparent; color: var(--danger); font-weight: 700; }
+.primary { min-height: 48px; padding-inline: 20px; border-radius: 12px; border: 0; background: var(--accent); color: var(--accent-fg); font-weight: 700; font-size: 16px; }
+
+.court { background: var(--court); border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+.court svg { display: block; width: 100%; height: auto; max-width: 100%; }
+.court figcaption { font-size: 12.5px; color: var(--muted); padding: 6px 4px 0; }
+.ln { fill: none; stroke: var(--court-line); stroke-width: 2; stroke-linejoin: round; }
+.ln.dash { stroke-dasharray: 5 5; }
+.hoop { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+.spot { cursor: pointer; outline: none; }
+.spot .hit { fill: transparent; stroke: none; }
+.spot .ringc { fill: var(--surface); stroke-width: 2.5; }
+.spot .fillc { stroke: none; }
+.spot.k2 .ringc { stroke: var(--two); } .spot.k2 .fillc { fill: var(--two); }
+.spot.k3 .ringc { stroke: var(--three); } .spot.k3 .fillc { fill: var(--three); }
+.spot.k1 .ringc { stroke: var(--ft); } .spot.k1 .fillc { fill: var(--ft); }
+.spot.static { cursor: default; pointer-events: none; }
+.spot .selc { fill: none; stroke: var(--accent); stroke-width: 3.5; opacity: 0; }
+.spot.sel .selc, .spot:focus-visible .selc { opacity: 1; }
+.spot text { font: 700 13px var(--font-body); text-anchor: middle; dominant-baseline: central; pointer-events: none; fill: var(--fg); }
+.spot text.hi { fill: var(--on-tint); }
+@media (prefers-reduced-motion: no-preference) {
+  .spot .fillc { transition: fill-opacity .25s; }
+  .big { transition: transform .08s; }
+}
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 14px; }
+.phead { display: flex; align-items: center; gap: 12px; }
+.phead .badge { width: 32px; height: 32px; }
+.phead h3 { font-size: 18px; line-height: 1.3; }
+.phead p { font-size: 13px; color: var(--muted); }
+.prate { margin-left: auto; font-family: var(--font-display); font-size: 32px; font-variant-numeric: tabular-nums; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.bbox { display: grid; gap: 8px; }
+.big { min-height: 88px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface); display: grid; place-items: center; align-content: center; padding: 8px; user-select: none; -webkit-user-select: none; }
+.big span { font-size: 15px; font-weight: 700; }
+.big b { font-family: var(--font-display); font-weight: 400; font-size: 36px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.big.make { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.big:active:not(:disabled) { transform: scale(.97); }
+.minus { min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 14px; }
+
+.seg2 { display: inline-flex; }
+.seg2 .chip { border-radius: 0; }
+.seg2 .chip:first-child { border-radius: 10px 0 0 10px; }
+.seg2 .chip:last-child { border-radius: 0 10px 10px 0; border-left: 0; }
+.rk { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; column-gap: 12px; align-items: center; padding: 10px 4px; min-height: 56px; border-bottom: 1px solid var(--line); }
+.rno { font-family: var(--font-display); font-size: 22px; text-align: center; font-variant-numeric: tabular-nums; }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 0 8px; border-radius: 999px; border: 1px solid currentColor; margin-left: 8px; vertical-align: 1px; white-space: nowrap; }
+.tag.good { color: var(--good); } .tag.warn { color: var(--warn); } .tag.mute { color: var(--muted); }
+.slots { display: grid; gap: 0; }
+.slot { display: grid; grid-template-columns: 112px minmax(0, 1fr); column-gap: 12px; align-items: center; padding: 10px 4px; border-bottom: 1px solid var(--line); min-height: 52px; }
+.slot .sl { display: grid; }
+.slot .sl b { font-size: 16px; }
+.slot .sl small { font-size: 12px; color: var(--muted); }
+.slot .sw { font-weight: 700; overflow-wrap: anywhere; }
+.slot .sw.tie { color: var(--warn); font-weight: 500; font-size: 14px; }
+.callout { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 14px; display: grid; gap: 4px; }
+.mx-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table.mx { border-collapse: collapse; width: 100%; min-width: 600px; font-variant-numeric: tabular-nums; }
+.mx th, .mx td { padding: 8px 6px; text-align: center; font-size: 13px; border-bottom: 1px solid var(--line); position: relative; }
+.mx th:first-child, .mx td:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); font-weight: 700; min-width: 84px; z-index: 1; padding-left: 10px; }
+.mx td .tint { position: absolute; inset: 0; background: var(--accent); pointer-events: none; }
+.mx td span { position: relative; }
+.mx thead th { font-size: 12px; color: var(--muted); }
+.mx thead .badge { margin-inline: auto; width: 24px; height: 24px; font-size: 12px; }
+
+.grp { flex-basis: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.gtile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: grid; gap: 2px; min-width: 0; }
+.gtile .gl { font-size: 12px; font-weight: 700; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.gtile .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--muted); }
+.gtile.k1 .dot { background: var(--ft); } .gtile.k2 .dot { background: var(--two); } .gtile.k3 .dot { background: var(--three); }
+.gtile .gr { font-family: var(--font-display); font-weight: 400; font-size: clamp(20px, 6vw, 28px); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.gtile .gd { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.callout .ct { font-weight: 700; font-size: 13px; letter-spacing: .06em; color: var(--muted); }
+.callout .d { font-size: 13px; }
+.srow { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; column-gap: 12px; row-gap: 8px; align-items: center; padding: 12px 4px; min-height: 56px; border-bottom: 1px solid var(--line); }
+.srow .sbar { grid-column: 2 / -1; position: relative; height: 6px; border-radius: 3px; background: var(--track); }
+.srow .sbar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+.srow .sbar u { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--fg); text-decoration: none; }
+.team-form { display: grid; gap: 10px; }
+.team-form textarea { width: 100%; min-height: 96px; resize: vertical; }
+.mrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.mrow input { width: 100%; }
+.set-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding-top: 10px; }
+.set-row input[type="text"] { flex: 1 1 220px; min-width: 0; }
+body { margin: 0; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+main.locked > .tabs, main.locked > .pane, main.locked .bar, main.locked .recent { display: none; }
+#acct .linkbtn { margin-left: 8px; }
+#pwInput { font: inherit; font-size: 16px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-height: 44px; width: min(100%, 320px); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>8スポットシュート</h1>
+    <p class="lede">部員全員の本数を記録して、スポットごとの確率、順位、片付け・清掃の当番まで自動で出します。</p>
+    <div class="bar">
+      <button type="button" id="prev" class="icon" aria-label="前の日">‹</button>
+      <label class="sr" for="date">記録する日</label>
+      <input type="date" id="date">
+      <button type="button" id="next" class="icon" aria-label="次の日">›</button>
+      <button type="button" id="todayBtn" class="chip">今日</button>
+    </div>
+    <div class="recent" id="recent"></div>
+    <p class="status" id="status" role="status">読み込み中…</p>
+    <p class="status" id="acct" hidden><span id="acctName"></span><button type="button" class="linkbtn" id="logoutBtn">ログアウト</button></p>
+  </header>
+
+  <section class="notice" id="gate" hidden>
+    <h2 id="gateTitle">ログインしてください</h2>
+    <p id="gateText"></p>
+    <label class="sr" for="pwInput">パスワード</label>
+    <input type="password" id="pwInput" autocomplete="current-password" placeholder="パスワード">
+    <button type="button" class="primary" id="loginBtn">ひらく</button>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="画面の切り替え">
+    <button type="button" class="tab" role="tab" id="tab-rec" data-tab="rec" aria-selected="true" aria-controls="pane-rec">記録</button>
+    <button type="button" class="tab" role="tab" id="tab-rank" data-tab="rank" aria-selected="false" aria-controls="pane-rank">順位・当番</button>
+    <button type="button" class="tab" role="tab" id="tab-me" data-tab="me" aria-selected="false" aria-controls="pane-me">個人</button>
+    <button type="button" class="tab" role="tab" id="tab-team" data-tab="team" aria-selected="false" aria-controls="pane-team">部員</button>
+  </div>
+
+  <section class="pane" id="pane-rec" role="tabpanel" aria-labelledby="tab-rec">
+    <div class="notice" id="recEmpty" hidden>
+      <h2>部員を登録してください</h2>
+      <p>名簿を作ると、部員ごとに本数を記録できます。名前は1行に1人で、まとめて追加できます。</p>
+      <button type="button" class="primary" id="goTeam">部員を追加する</button>
+    </div>
+    <div class="pane" id="recBody" hidden>
+      <div>
+        <h2 class="sec">記録する部員</h2>
+        <div class="members" id="members" style="padding-top:12px"></div>
+      </div>
+      <section class="summary" aria-label="この部員のこの日の結果">
+        <div>
+          <span class="avg-label" id="avgLabel">平均確率</span>
+          <span><span class="avg-num" id="avg">0.0</span><span class="avg-unit">%</span></span>
+        </div>
+        <dl class="facts">
+          <div><dt>入った / 打った</dt><dd><span id="made">0</span> / <span id="att">0</span></dd></div>
+          <div><dt>打ち終えたスポット</dt><dd><span id="done">0</span> / 8</dd></div>
+        </dl>
+        <div class="grp" id="grp"></div>
+        <p class="note">平均確率は、各スポットの確率の平均です。打っていないスポットは0%として数えます。フリースロー・2P・3Pは、入った本数÷打った本数です。フリースローは1点のシュートなので、2Pには含めず別に出します。</p>
+      </section>
+      <div class="grid">
+        <div class="col">
+          <section>
+            <h2 class="sec">本数で入力</h2>
+            <div class="ehead" aria-hidden="true"><span></span><span></span><span>入った</span><span>打った</span></div>
+            <div id="entryRows"></div>
+            <p class="hint">「入った」だけ入れると、打った本数は自動で設定した本数(下の設定)になります。違う場合は「打った」を直してください。</p>
+            <div class="delwrap" id="del"></div>
+          </section>
+        </div>
+        <div class="col">
+          <figure class="court">
+            <svg viewBox="0 0 320 270" role="group" aria-label="ハーフコートと8つのシュートスポット">
+              <rect class="ln" x="6" y="6" width="308" height="258" rx="2"/>
+              <rect class="ln" x="112" y="6" width="96" height="106"/>
+              <path class="ln" d="M122 112 A38 38 0 0 1 198 112"/>
+              <path class="ln dash" d="M122 112 A38 38 0 0 0 198 112"/>
+              <path class="ln" d="M136 30 A24 24 0 0 0 184 30"/>
+              <path class="ln" d="M40 6 V30 A120 120 0 0 0 280 30 V6"/>
+              <path class="ln" d="M145 19 H175 M160 19 V23"/>
+              <circle class="hoop" cx="160" cy="30" r="7"/>
+              <g id="markers"></g>
+            </svg>
+            <figcaption>円が濃いほど確率が高いスポットです。緑は2P、青は3P、紫はフリースロー。タップして選びます。</figcaption>
+          </figure>
+          <section class="panel" aria-label="選んだスポットを1本ずつ記録">
+            <div class="phead">
+              <span class="badge k1" id="pnum">1</span>
+              <div>
+                <h3 id="pname">フリースロー</h3>
+                <p id="pmeta">FT</p>
+              </div>
+              <span class="prate" id="prate">0%</span>
+            </div>
+            <div class="btns">
+              <div class="bbox">
+                <button type="button" class="big make" id="makeBtn"><span>入った</span><b id="makeN">0</b></button>
+                <button type="button" class="minus" id="makeMinus" aria-label="入った本数を1つ減らす">入った −1</button>
+              </div>
+              <div class="bbox">
+                <button type="button" class="big" id="missBtn"><span>外れた</span><b id="missN">0</b></button>
+                <button type="button" class="minus" id="missMinus" aria-label="外れた本数を1つ減らす">外れた −1</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pane" id="pane-rank" role="tabpanel" aria-labelledby="tab-rank" hidden>
+    <div class="seg2" role="group" aria-label="順位の範囲">
+      <button type="button" class="chip" id="modeDay" aria-pressed="true">この日の順位</button>
+      <button type="button" class="chip" id="modeAll" aria-pressed="false">通算の順位</button>
+    </div>
+    <div class="notice" id="rankEmpty" hidden>
+      <p id="rankEmptyText">部員を登録すると、ここに順位が出ます。</p>
+    </div>
+    <div class="grid" id="rankBody">
+      <div class="col">
+        <section>
+          <h2 class="sec" id="rankTitle">順位</h2>
+          <div id="rankList"></div>
+          <p class="hint" id="rankHint"></p>
+        </section>
+      </div>
+      <div class="col">
+        <section id="dutySec">
+          <h2 class="sec">片付け・清掃の当番</h2>
+          <div class="slots" id="slots" style="padding-top:4px"></div>
+          <p class="hint">最下位から順に割り当てます。同率の部員は、話し合いやジャンケンなどで決めてください。</p>
+          <div class="set-row"><button type="button" class="primary" id="copyResult">この日の結果をコピー</button></div>
+        </section>
+        <section class="callout" id="juice" hidden></section>
+      </div>
+    </div>
+    <section id="matrixSec">
+      <h2 class="sec">スポット別の通算確率(得意・不得意)</h2>
+      <p class="hint">濃いほど確率が高いスポットです。右の2列は、2P(ミドル)と3Pの確率です。まだ打っていない所は「–」です。</p>
+      <div class="mx-wrap" style="margin-top:12px"><table class="mx" id="matrix"></table></div>
+    </section>
+  </section>
+
+  <section class="pane" id="pane-me" role="tabpanel" aria-labelledby="tab-me" hidden>
+    <div class="notice" id="meEmpty" hidden>
+      <h2>部員を登録してください</h2>
+      <p>部員を登録して記録がたまると、一人ひとりの得意・苦手がここに出ます。</p>
+      <button type="button" class="primary" id="goTeam2">部員を追加する</button>
+    </div>
+    <div class="pane" id="meBody" hidden>
+      <div>
+        <h2 class="sec">部員を選ぶ</h2>
+        <div class="members" id="pmembers" style="padding-top:12px"></div>
+      </div>
+      <section class="summary" aria-label="通算の結果">
+        <div>
+          <span class="avg-label" id="meLabel">通算の平均確率</span>
+          <span><span class="avg-num" id="meAvg">0.0</span><span class="avg-unit">%</span></span>
+        </div>
+        <dl class="facts">
+          <div><dt>記録した日数</dt><dd id="meDays">0日</dd></div>
+          <div><dt>入った / 打った</dt><dd id="meMA">0 / 0</dd></div>
+        </dl>
+        <div class="grp" id="meGrp"></div>
+      </section>
+      <section class="callout" id="meVerdict" aria-label="得意・苦手の判定"></section>
+      <div class="grid">
+        <div class="col">
+          <figure class="court">
+            <svg viewBox="0 0 320 270" role="group" aria-label="通算の確率を表すハーフコート">
+              <rect class="ln" x="6" y="6" width="308" height="258" rx="2"/>
+              <rect class="ln" x="112" y="6" width="96" height="106"/>
+              <path class="ln" d="M122 112 A38 38 0 0 1 198 112"/>
+              <path class="ln dash" d="M122 112 A38 38 0 0 0 198 112"/>
+              <path class="ln" d="M136 30 A24 24 0 0 0 184 30"/>
+              <path class="ln" d="M40 6 V30 A120 120 0 0 0 280 30 V6"/>
+              <path class="ln" d="M145 19 H175 M160 19 V23"/>
+              <circle class="hoop" cx="160" cy="30" r="7"/>
+              <g id="pmarkers"></g>
+            </svg>
+            <figcaption>円が濃いほど、通算の確率が高いスポットです。</figcaption>
+          </figure>
+        </div>
+        <div class="col">
+          <section>
+            <h2 class="sec">スポット別(通算)</h2>
+            <div id="meRows"></div>
+            <p class="hint" id="meHint"></p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pane" id="pane-team" role="tabpanel" aria-labelledby="tab-team" hidden>
+    <div class="grid">
+      <div class="col">
+        <section>
+          <h2 class="sec">部員を追加</h2>
+          <div class="team-form" style="padding-top:12px">
+            <label class="sr" for="names">追加する部員の名前</label>
+            <textarea id="names" placeholder="1行に1人ずつ(カンマ区切りでも追加できます)"></textarea>
+            <button type="button" class="primary" id="addBtn">追加する</button>
+          </div>
+        </section>
+        <section>
+          <h2 class="sec">設定</h2>
+          <div class="set-row"><span>1スポットで打つ本数</span>
+            <div class="seg2" role="group" aria-label="1スポットで打つ本数">
+              <button type="button" class="chip" data-n="10" aria-pressed="true">10本</button>
+              <button type="button" class="chip" data-n="15" aria-pressed="false">15本</button>
+            </div>
+          </div>
+          <div class="set-row"><label for="duties">当番の種類(最下位から順に、カンマ区切り)</label>
+            <input type="text" id="duties">
+          </div>
+        </section>
+        <section>
+          <h2 class="sec">バックアップ</h2>
+          <p class="hint" id="bkHint">記録は、このスマホのブラウザに保存されます。ブラウザのデータを消すと記録も消えるので、ときどきコピーして、LINEのKeepなどに貼って保管してください。</p>
+          <div class="set-row"><button type="button" class="chip" id="bkCopy">バックアップをコピー</button></div>
+          <div class="team-form" style="padding-top:12px">
+            <label class="sr" for="bkIn">バックアップの文章</label>
+            <textarea id="bkIn" placeholder="コピーしたバックアップを、ここに貼り付け"></textarea>
+            <button type="button" class="chip" id="bkRestore">貼り付けた内容で復元する</button>
+            <p class="hint" id="bkMsg" style="padding:0"></p>
+          </div>
+        </section>
+      </div>
+      <div class="col">
+        <section>
+          <h2 class="sec">名簿</h2>
+          <div id="roster"></div>
+          <p class="hint" id="rosterHint"></p>
+        </section>
+      </div>
+    </div>
+  </section>
+  <section id="outSec" hidden aria-live="polite">
+    <h2 class="sec">コピー用の文章</h2>
+    <textarea id="outBox" readonly rows="8" style="width:100%;margin-top:12px"></textarea>
+    <div class="set-row"><span class="hint" id="outMsg" style="padding:0"></span><button type="button" class="linkbtn" id="outClose">閉じる</button></div>
+  </section>
+</main>
+
+<script>
+// 【共有して使うときの設定】
+// 1) 下の null を、Firebaseの画面に出る firebaseConfig の { ... } に置き換えます。
+// 2) FIREBASE_ACCOUNTS に、Firebaseで作ったユーザーのメールアドレスを書きます。
+//    editor は記入者用(入力できる)、viewer は閲覧用(見るだけ)です。viewer は空のままでもかまいません。
+// null のままなら、このスマホのブラウザの中だけに保存します。
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD5ervktUfbZy5-HWa1dxZlV6tIopDd_Ps",
+  authDomain: "spotshoot-85c56.firebaseapp.com",
+  projectId: "spotshoot-85c56",
+  storageBucket: "spotshoot-85c56.firebasestorage.app",
+  messagingSenderId: "655714482379",
+  appId: "1:655714482379:web:d71d43dfc65b7e5b5e034e",
+  measurementId: "G-WTY5DDB2Y6"
+};
+var FIREBASE_ACCOUNTS = { editor: 'shot-editor@example.com', viewer: 'shot-viewer@example.com' };
+(function () {
+  'use strict';
+
+  var SPOTS = [
+    { id: 1, name: 'フリースロー', kind: 1, x: 160, y: 112 },
+    { id: 2, name: '右ミドル',     kind: 2, x: 222, y: 86 },
+    { id: 3, name: '左ミドル',     kind: 2, x: 98,  y: 86 },
+    { id: 4, name: '右コーナー',   kind: 3, x: 297, y: 42 },
+    { id: 5, name: '右ウィング',   kind: 3, x: 248, y: 112 },
+    { id: 6, name: 'トップ',       kind: 3, x: 160, y: 150 },
+    { id: 7, name: '左ウィング',   kind: 3, x: 72,  y: 112 },
+    { id: 8, name: '左コーナー',   kind: 3, x: 23,  y: 42 }
+  ];
+  var DEFAULT_DUTIES = ['モップ', 'モップ', 'ボール', 'タイマー', 'ゴール', '窓・ドア'];
+  var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  var KL = { 1: 'FT', 2: '2P', 3: '3P' };
+  var GL = { 1: 'フリースロー', 2: '2P(ミドル)', 3: '3P' };
+  var MIN_ATT = 20, GAP = 0.10;
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function fmtDate(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function today() { return fmtDate(new Date()); }
+  function dateLabel(s) {
+    var p = s.split('-'); var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return (d.getMonth() + 1) + '/' + d.getDate() + '(' + '日月火水木金土'.charAt(d.getDay()) + ')';
+  }
+  function $(id) { return document.getElementById(id); }
+  function clamp(n) { n = Math.floor(+n); return n > 0 ? Math.min(n, 999) : 0; }
+  function pct(r) { return Math.round(r * 100) + '%'; }
+  function newId() { return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  var state = {
+    date: today(), tab: 'rec', rankMode: 'day', sel: 1, member: null, pm: null,
+    roster: { members: [], target: 10, duties: DEFAULT_DUTIES.slice() },
+    days: {}, loaded: false, mode: 'pending', canWrite: false,
+    dirty: {}, pending: {}, error: false, confirmDel: false, confirmRm: null
+  };
+
+  /* ---------- data helpers ---------- */
+  function blankEntry() {
+    var e = {}; SPOTS.forEach(function (sp) { e[sp.id] = { made: 0, att: 0 }; }); return e;
+  }
+  function normEntry(x) {
+    var e = {};
+    SPOTS.forEach(function (sp) {
+      var s = (x && x[sp.id]) || {}, m = clamp(s.made), a = clamp(s.att);
+      e[sp.id] = { made: m, att: Math.max(a, m) };
+    });
+    return e;
+  }
+  function normDay(d, date) {
+    var out = { date: date, entries: {}, updatedAt: +(d && d.updatedAt) || 0 };
+    var en = (d && d.entries) || {};
+    Object.keys(en).forEach(function (mid) { out.entries[mid] = normEntry(en[mid]); });
+    return out;
+  }
+  function normRoster(d) {
+    var r = { members: [], target: 10, duties: DEFAULT_DUTIES.slice() };
+    if (!d) return r;
+    if (Array.isArray(d.members)) {
+      d.members.forEach(function (m) {
+        if (m && typeof m.id === 'string' && typeof m.name === 'string') {
+          r.members.push({ id: m.id, name: m.name.slice(0, 30), since: DATE_RE.test(m.since) ? m.since : '0000-00-00' });
+        }
+      });
+    }
+    if (d.target === 15) r.target = 15;
+    if (Array.isArray(d.duties)) {
+      var du = d.duties.filter(function (x) { return typeof x === 'string' && x; }).map(function (x) { return x.slice(0, 12); }).slice(0, 12);
+      if (du.length) r.duties = du;
+    }
+    return r;
+  }
+  function entryOf(date, mid) { var d = state.days[date]; return d && d.entries[mid] ? d.entries[mid] : null; }
+  function spotOf(en, id) { return en ? en[id] : { made: 0, att: 0 }; }
+  function rateOf(s) { return s.att ? s.made / s.att : 0; }
+  function entryStats(en) {
+    var sum = 0, made = 0, att = 0, done = 0;
+    SPOTS.forEach(function (sp) {
+      var s = spotOf(en, sp.id);
+      sum += rateOf(s); made += s.made; att += s.att;
+      if (s.att >= state.roster.target) done++;
+    });
+    return { avg: sum / SPOTS.length * 100, made: made, att: att, done: done };
+  }
+  function emptySpots() { var o = {}; SPOTS.forEach(function (sp) { o[sp.id] = { made: 0, att: 0 }; }); return o; }
+  function emptyGroups() { return { 1: { made: 0, att: 0 }, 2: { made: 0, att: 0 }, 3: { made: 0, att: 0 } }; }
+  function addEntry(spots, groups, en) {
+    SPOTS.forEach(function (sp) {
+      var x = en[sp.id];
+      spots[sp.id].made += x.made; spots[sp.id].att += x.att;
+      groups[sp.kind].made += x.made; groups[sp.kind].att += x.att;
+    });
+  }
+  function groupsOf(en) { var g = emptyGroups(); if (en) addEntry(emptySpots(), g, en); return g; }
+  function groupLine(g) {
+    return [1, 2, 3].map(function (k) { return KL[k] + ' ' + (g[k].att ? pct(g[k].made / g[k].att) : '–'); }).join(' ・ ');
+  }
+  function memberTotals(mid) {
+    var spots = emptySpots(), groups = emptyGroups(), days = [];
+    allDates().forEach(function (dt) {
+      var en = entryOf(dt, mid); if (!en) return;
+      addEntry(spots, groups, en); days.push({ date: dt, avg: entryStats(en).avg });
+    });
+    return { spots: spots, groups: groups, days: days };
+  }
+  function teamSpotTotals() {
+    var sp = emptySpots(), g = emptyGroups();
+    state.roster.members.forEach(function (m) {
+      allDates().forEach(function (dt) { var en = entryOf(dt, m.id); if (en) addEntry(sp, g, en); });
+    });
+    return sp;
+  }
+  // Spots with at least MIN_ATT shots are judged. Strong/weak are marked only when the best and worst differ by GAP or more.
+  function judge(spots) {
+    var judged = SPOTS.filter(function (sp) { return spots[sp.id].att >= MIN_ATT; })
+      .map(function (sp) { return { sp: sp, r: spots[sp.id].made / spots[sp.id].att }; });
+    var out = { judged: judged, strong: [], weak: [], flat: false, max: 0, min: 0 };
+    if (judged.length < 2) return out;
+    var sorted = judged.slice().sort(function (a, b) { return (b.r - a.r) || (a.sp.id - b.sp.id); });
+    out.max = sorted[0].r; out.min = sorted[sorted.length - 1].r;
+    if (out.max - out.min < GAP - 1e-9) { out.flat = true; return out; }
+    var mean = judged.reduce(function (a, x) { return a + x.r; }, 0) / judged.length;
+    var k = judged.length >= 5 ? 2 : 1;
+    out.strong = sorted.slice(0, k).filter(function (x) { return x.r >= mean + 0.05 - 1e-9; });
+    out.weak = sorted.slice(-k).reverse().filter(function (x) { return x.r <= mean - 0.05 + 1e-9; });
+    return out;
+  }
+  function memberById(id) {
+    var ms = state.roster.members;
+    for (var i = 0; i < ms.length; i++) if (ms[i].id === id) return ms[i];
+    return null;
+  }
+
+  /* ---------- ranking ---------- */
+  function key6(v) { return v.toFixed(6); }
+  function assignRanks(items) {
+    items.sort(function (a, b) {
+      if (key6(b.avg) !== key6(a.avg)) return b.avg - a.avg;
+      return a.m.name.localeCompare(b.m.name, 'ja');
+    });
+    var counts = {};
+    items.forEach(function (it, i) {
+      it.rank = (i > 0 && key6(it.avg) === key6(items[i - 1].avg)) ? items[i - 1].rank : i + 1;
+      counts[key6(it.avg)] = (counts[key6(it.avg)] || 0) + 1;
+    });
+    items.forEach(function (it) { it.tie = counts[key6(it.avg)] > 1; });
+    return items;
+  }
+  function dayItems(date) {
+    var items = [];
+    state.roster.members.forEach(function (m) {
+      var en = entryOf(date, m.id);
+      if (!en && m.since > date) return;
+      var st = entryStats(en);
+      items.push({ m: m, avg: st.avg, made: st.made, att: st.att, reported: !!en, groups: groupsOf(en) });
+    });
+    return assignRanks(items);
+  }
+  function allDates() { return Object.keys(state.days).sort(); }
+  function cumItems() {
+    var dates = allDates(), items = [];
+    state.roster.members.forEach(function (m) {
+      var sum = 0, n = 0, made = 0, att = 0, grp = emptyGroups(), sps = emptySpots();
+      dates.forEach(function (dt) {
+        var en = entryOf(dt, m.id);
+        if (!en && m.since > dt) return;
+        var st = entryStats(en); sum += st.avg; n++; made += st.made; att += st.att;
+        if (en) addEntry(sps, grp, en);
+      });
+      if (n) items.push({ m: m, avg: sum / n, made: made, att: att, days: n, groups: grp });
+    });
+    return assignRanks(items);
+  }
+  function dutySlots(items, duties) {
+    // items sorted best -> worst. Walk from the worst, grouping equal averages.
+    var asc = items.slice().reverse(), slots = [], pos = 0, i = 0;
+    var assigned = {};
+    while (i < asc.length && pos < duties.length) {
+      var j = i; while (j < asc.length && key6(asc[j].avg) === key6(asc[i].avg)) j++;
+      var group = asc.slice(i, j), slice = duties.slice(pos, pos + group.length);
+      var same = slice.every(function (x) { return x === slice[0]; });
+      if (group.length === 1 || (same && slice.length === group.length)) {
+        group.forEach(function (g, k) { slots.push({ idx: pos + k, duty: slice[k], names: [g.m.name], tie: false }); assigned[g.m.id] = slice[k]; });
+      } else {
+        slice.forEach(function (d, k) {
+          slots.push({ idx: pos + k, duty: d, names: group.map(function (g) { return g.m.name; }), tie: true, need: slice.length });
+        });
+      }
+      pos += group.length; i = j;
+    }
+    return { slots: slots, assigned: assigned };
+  }
+
+  /* ---------- storage ---------- */
+  var backend = null, chain = Promise.resolve(), timers = {};
+
+  function statusText() {
+    if (state.storageFail) return 'このブラウザには保存できません(プライベートモードなど)。通常のモードで開いてください。';
+    if (state.mode === 'none') return '読み込み中…';
+    if (state.error) return '保存できませんでした。もう一度操作してください。';
+    if (Object.keys(state.dirty).length) return '保存中…';
+    if (state.mode === 'local') return '保存済み(このスマホのブラウザに保存されます)';
+    if (state.mode === 'fb') return state.user ? (state.canWrite ? '保存済み(パスワードを知っている人全員で共有されます)' : '閲覧用です(入力はできません)') : '';
+    if (state.mode === 'cloud') return state.canWrite ? '保存済み' : '閲覧のみです(入力はマネージャーが行います)';
+    return '読み込み中…';
+  }
+  function setStatus() { $('status').textContent = statusText(); }
+
+  function onDays(snap) {
+    var seen = {};
+    snap.docs.forEach(function (d) {
+      var data = d.data();
+      if (!data || !DATE_RE.test(d.id)) return;
+      seen[d.id] = true;
+      if (!state.dirty['d:' + d.id]) state.days[d.id] = normDay(data, d.id);
+    });
+    Object.keys(state.days).forEach(function (k) {
+      if (!seen[k] && !state.dirty['d:' + k]) delete state.days[k];
+    });
+    render();
+  }
+  function onRoster(snap) {
+    state.loaded = true;
+    if (!state.dirty.roster) state.roster = snap.exists ? normRoster(snap.data()) : normRoster(null);
+    fixMember();
+    render();
+  }
+  function fixMember() {
+    if (!memberById(state.member)) {
+      state.member = state.roster.members.length ? state.roster.members[0].id : null;
+    }
+  }
+  function loadScript(src) {
+    return new Promise(function (res, rej) {
+      var sc = document.createElement('script'); sc.src = src; sc.onload = res; sc.onerror = function () { rej(new Error(src)); };
+      document.head.appendChild(sc);
+    });
+  }
+  function startFirebase() {
+    state.mode = 'fb'; state.canWrite = false; state.authReady = false; state.user = null;
+    render();
+    var base = 'https://www.gstatic.com/firebasejs/10.14.1/';
+    loadScript(base + 'firebase-app-compat.js').then(function () {
+      return Promise.all([loadScript(base + 'firebase-auth-compat.js'), loadScript(base + 'firebase-firestore-compat.js')]);
+    }).then(function () {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      var auth = firebase.auth(), db = firebase.firestore();
+      try { db.enablePersistence({ synchronizeTabs: true }).catch(function () {}); } catch (e) {}
+      backend = { type: 'fb', auth: auth, db: db, unsubs: [] };
+      auth.onAuthStateChanged(function (u) {
+        backend.unsubs.forEach(function (f) { f(); }); backend.unsubs = [];
+        state.authReady = true; state.user = u || null; state.denied = false; state.error = false; state.loginError = '';
+        state.dirty = {}; state.pending = {};
+        if (u) {
+          state.canWrite = !FIREBASE_ACCOUNTS.viewer || (u.email || '').toLowerCase() === FIREBASE_ACCOUNTS.editor.toLowerCase();
+          var fail = function (e) { if (e && e.code === 'permission-denied') state.denied = true; else state.error = true; render(); };
+          backend.unsubs.push(db.doc('team/roster').onSnapshot(onRoster, fail));
+          backend.unsubs.push(db.collection('days').onSnapshot(onDays, fail));
+        } else {
+          state.canWrite = false; state.loaded = false; state.days = {}; state.roster = normRoster(null); state.member = null; state.pm = null;
+        }
+        render();
+      });
+    }).catch(function () { state.netFail = true; state.authReady = true; render(); });
+  }
+  function signIn() {
+    if (!backend || !backend.auth || state.loginBusy) return;
+    var pw = $('pwInput').value;
+    if (!pw) { state.loginError = 'パスワードを入力してください。'; render(); return; }
+    var accts = [FIREBASE_ACCOUNTS.editor, FIREBASE_ACCOUNTS.viewer].filter(Boolean);
+    state.loginBusy = true; state.loginError = ''; render();
+    var stop = function (msg) { state.loginBusy = false; state.loginError = msg; render(); };
+    var next = function (i) {
+      if (i >= accts.length) { stop('パスワードが違います。'); return; }
+      backend.auth.signInWithEmailAndPassword(accts[i], pw).then(function () {
+        state.loginBusy = false; $('pwInput').value = '';
+      }, function (e) {
+        var c = e && e.code;
+        if (c === 'auth/network-request-failed') { stop('通信できません。電波を確認してください。'); return; }
+        if (c === 'auth/too-many-requests') { stop('何度も間違えたため、しばらく使えません。時間をおいてから試してください。'); return; }
+        next(i + 1);
+      });
+    };
+    next(0);
+  }
+  var LS_KEY = 'eight-spot-shooting-v1';
+  function initBackend() {
+    if (FIREBASE_CONFIG && typeof FIREBASE_CONFIG === 'object' && FIREBASE_ACCOUNTS && FIREBASE_ACCOUNTS.editor) { startFirebase(); return; }
+    state.mode = 'local'; state.canWrite = true;
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        var o = JSON.parse(raw);
+        state.roster = normRoster(o.roster);
+        Object.keys(o.days || {}).forEach(function (k) { if (DATE_RE.test(k)) state.days[k] = normDay(o.days[k], k); });
+      }
+    } catch (e) { state.storageFail = true; }
+    state.loaded = true; fixMember(); render();
+  }
+
+  function queueSave(key) {
+    state.dirty[key] = true; state.pending[key] = true; setStatus();
+    clearTimeout(timers[key]);
+    timers[key] = setTimeout(function () { flush(key); }, 500);
+  }
+  function flush(key) {
+    if (state.mode === 'fb') {
+      chain = chain.then(function () {
+        if (!backend || !backend.db) return;
+        state.pending[key] = false;
+        var p;
+        if (key === 'roster') {
+          p = backend.db.doc('team/roster').set(state.roster);
+        } else {
+          var date = key.slice(2), d = state.days[date];
+          p = d ? backend.db.collection('days').doc(date).set(d) : backend.db.collection('days').doc(date).delete();
+        }
+        return p.then(function () {
+          if (!state.pending[key]) delete state.dirty[key];
+          state.error = false;
+        }, function (e) {
+          state.error = true;
+          if (e && e.code === 'permission-denied') state.denied = true;
+        });
+      }).then(function () { render(); }, function () { render(); });
+      return;
+    }
+    state.pending[key] = false;
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({ v: 1, roster: state.roster, days: state.days }));
+      state.dirty = {}; state.error = false;
+    } catch (e) { state.error = true; }
+    setStatus();
+  }
+
+  function canEdit() { return state.canWrite && !state.denied && state.mode !== 'none'; }
+
+  function mutate(date, mid, fn) {
+    if (!canEdit() || !mid) return;
+    var day = state.days[date] || (state.days[date] = { date: date, entries: {}, updatedAt: 0 });
+    var en = day.entries[mid] || (day.entries[mid] = blankEntry());
+    fn(en);
+    if (!entryStats(en).att) delete day.entries[mid];
+    if (!Object.keys(day.entries).length) delete state.days[date]; else day.updatedAt = Date.now();
+    state.confirmDel = false;
+    queueSave('d:' + date);
+    render();
+  }
+  function saveRoster() { queueSave('roster'); render(); }
+
+  /* ---------- static DOM ---------- */
+  var NS = 'http://www.w3.org/2000/svg';
+  function svgEl(name, attrs) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function el(tag, cls, html) {
+    var e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e;
+  }
+  function btn(text, cls, fn) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = text;
+    b.addEventListener('click', fn); return b;
+  }
+
+  var markers = {}, erows = {};
+  SPOTS.forEach(function (sp) {
+    var g = svgEl('g', { 'class': 'spot k' + sp.kind, tabindex: '0', role: 'button',
+      'data-id': sp.id, transform: 'translate(' + sp.x + ' ' + sp.y + ')' });
+    g.appendChild(svgEl('circle', { 'class': 'hit', r: 19 }));
+    g.appendChild(svgEl('circle', { 'class': 'selc', r: 20 }));
+    g.appendChild(svgEl('circle', { 'class': 'ringc', r: 14 }));
+    var fill = svgEl('circle', { 'class': 'fillc', r: 14, 'fill-opacity': '0.08' });
+    g.appendChild(fill);
+    var tx = svgEl('text', { x: 0, y: 1 }); tx.textContent = sp.id; g.appendChild(tx);
+    g.addEventListener('click', function () { select(sp.id); });
+    g.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(sp.id); }
+    });
+    $('markers').appendChild(g);
+    markers[sp.id] = { g: g, fill: fill, text: tx };
+
+    var row = el('div', 'erow',
+      '<span class="badge k' + sp.kind + '">' + sp.id + '</span>' +
+      '<span class="rname"><span class="n"></span><span class="d"></span></span>' +
+      '<input type="number" inputmode="numeric" min="0" max="999" step="1" placeholder="0" class="im">' +
+      '<input type="number" inputmode="numeric" min="0" max="999" step="1" placeholder="0" class="ia">');
+    var im = row.querySelector('.im'), ia = row.querySelector('.ia');
+    im.setAttribute('aria-label', sp.name + ' 入った本数');
+    ia.setAttribute('aria-label', sp.name + ' 打った本数');
+    row.querySelector('.rname').addEventListener('click', function () { select(sp.id); });
+    im.addEventListener('focus', function () { state.sel = sp.id; });
+    ia.addEventListener('focus', function () { state.sel = sp.id; });
+    // An emptied field waits for the change event, so retyping a number does not wipe the other column.
+    im.addEventListener('input', function () { if (im.value !== '') onNum(sp.id, 'made', im.value); });
+    ia.addEventListener('input', function () { if (ia.value !== '') onNum(sp.id, 'att', ia.value); });
+    im.addEventListener('change', function () { onNum(sp.id, 'made', im.value); });
+    ia.addEventListener('change', function () { onNum(sp.id, 'att', ia.value); });
+    im.addEventListener('blur', render); ia.addEventListener('blur', render);
+    $('entryRows').appendChild(row);
+    erows[sp.id] = { row: row, n: row.querySelector('.n'), d: row.querySelector('.d'), im: im, ia: ia };
+  });
+
+  var pmarkers = {};
+  SPOTS.forEach(function (sp) {
+    var g = svgEl('g', { 'class': 'spot static k' + sp.kind, role: 'img', transform: 'translate(' + sp.x + ' ' + sp.y + ')' });
+    g.appendChild(svgEl('circle', { 'class': 'ringc', r: 14 }));
+    var fill = svgEl('circle', { 'class': 'fillc', r: 14, 'fill-opacity': '0.08' });
+    g.appendChild(fill);
+    var tx = svgEl('text', { x: 0, y: 1 }); tx.textContent = sp.id; g.appendChild(tx);
+    $('pmarkers').appendChild(g);
+    pmarkers[sp.id] = { g: g, fill: fill, text: tx };
+  });
+  function renderGroups(box, g) {
+    box.textContent = '';
+    [1, 2, 3].forEach(function (k) {
+      var t = el('div', 'gtile k' + k, '<span class="gl"><i class="dot"></i><span></span></span><b class="gr"></b><span class="gd"></span>');
+      t.querySelector('.gl span').textContent = GL[k];
+      t.querySelector('.gr').textContent = g[k].att ? pct(g[k].made / g[k].att) : '–';
+      t.querySelector('.gd').textContent = g[k].att ? g[k].made + ' / ' + g[k].att + '本' : '未記録';
+      box.appendChild(t);
+    });
+  }
+
+  function onNum(id, field, raw) {
+    var v = raw === '' ? 0 : clamp(parseInt(raw, 10));
+    mutate(state.date, state.member, function (en) {
+      var s = en[id];
+      if (field === 'made') {
+        s.made = v;
+        if (s.att === 0 && v > 0) s.att = Math.max(state.roster.target, v);
+        else if (s.att < v) s.att = v;
+      } else {
+        s.att = v;
+        if (s.made > v) s.made = v;
+      }
+    });
+  }
+  function tap(kind) {
+    mutate(state.date, state.member, function (en) {
+      var s = en[state.sel];
+      if (kind === 'make') { if (s.att < 999) { s.made++; s.att++; } }
+      else if (kind === 'miss') { if (s.att < 999) s.att++; }
+      else if (kind === 'unmake') { if (s.made > 0) { s.made--; s.att--; } }
+      else if (kind === 'unmiss') { if (s.att - s.made > 0) s.att--; }
+    });
+  }
+  function select(id) { state.sel = id; render(); }
+
+  /* ---------- render ---------- */
+  function gateState() {
+    if (state.mode !== 'fb') return 'open';
+    if (state.netFail) return 'net';
+    if (!state.authReady) return 'wait';
+    if (!state.user) return 'login';
+    if (state.denied) return 'denied';
+    return 'open';
+  }
+  function renderGate() {
+    var g = gateState(), main = document.querySelector('main');
+    $('gate').hidden = g === 'open';
+    if (main && main.classList) main.classList.toggle('locked', g !== 'open');
+    $('acct').hidden = !state.user;
+    if (state.user) $('acctName').textContent = state.canWrite ? '記入者としてログイン中' : '閲覧用でログイン中(入力はできません)';
+    $('loginBtn').hidden = g !== 'login'; $('pwInput').hidden = g !== 'login';
+    $('loginBtn').disabled = !!state.loginBusy;
+    var t = {
+      wait: ['接続しています…', ''],
+      net: ['接続できません', '電波を確認して、ページを再読み込みしてください。'],
+      login: ['パスワードを入力してください', '部で決めたパスワードを入れると、記録が開きます。記入者のパスワードなら入力もでき、閲覧用のパスワードなら見るだけです。'],
+      denied: ['記録を読み込めません', 'パスワードは合っていますが、記録の保存場所の設定(Firestoreのルール)が合っていないようです。設定を見直してください。']
+    }[g];
+    if (t) { $('gateTitle').textContent = t[0]; $('gateText').textContent = (g === 'login' && state.loginError) ? state.loginError : t[1]; }
+  }
+  function setTab(t) { state.tab = t; render(); }
+  function render() {
+    var ro = !canEdit();
+    renderGate();
+    $('date').value = state.date; $('date').max = today();
+    $('next').disabled = state.date >= today();
+    $('todayBtn').disabled = state.date === today();
+    renderRecent(); setStatus();
+    ['rec', 'rank', 'me', 'team'].forEach(function (t) {
+      $('tab-' + t).setAttribute('aria-selected', state.tab === t ? 'true' : 'false');
+      $('pane-' + t).hidden = state.tab !== t;
+    });
+    if (state.tab === 'rec') renderRec(ro);
+    if (state.tab === 'rank') renderRank();
+    if (state.tab === 'me') renderMe();
+    if (state.tab === 'team') renderTeam(ro);
+  }
+
+  function renderRecent() {
+    var r = $('recent'); r.textContent = '';
+    var dates = allDates().reverse().slice(0, 8);
+    if (!dates.length) return;
+    var l = document.createElement('span'); l.textContent = '記録がある日'; r.appendChild(l);
+    dates.forEach(function (dt) {
+      var b = btn(dateLabel(dt), 'chip', function () { setDate(dt); });
+      b.setAttribute('aria-current', dt === state.date ? 'true' : 'false'); r.appendChild(b);
+    });
+  }
+
+  function renderRec(ro) {
+    var has = state.roster.members.length > 0;
+    $('recEmpty').hidden = has || !state.loaded;
+    $('recBody').hidden = !has;
+    if (!has) return;
+    fixMember();
+    var m = $('members'); m.textContent = '';
+    state.roster.members.forEach(function (mm) {
+      var b = el('button', 'chip'); b.type = 'button';
+      b.appendChild(document.createTextNode(mm.name));
+      if (entryOf(state.date, mm.id)) { var s = document.createElement('small'); s.textContent = '記録済'; b.appendChild(s); }
+      b.setAttribute('aria-pressed', mm.id === state.member ? 'true' : 'false');
+      b.addEventListener('click', function () { state.member = mm.id; state.confirmDel = false; render(); });
+      m.appendChild(b);
+    });
+
+    var en = entryOf(state.date, state.member), st = entryStats(en);
+    var who = memberById(state.member);
+    $('avgLabel').textContent = (who ? who.name : '') + ' の平均確率';
+    $('avg').textContent = st.avg.toFixed(1);
+    $('made').textContent = st.made; $('att').textContent = st.att; $('done').textContent = st.done;
+    renderGroups($('grp'), groupsOf(en));
+
+    SPOTS.forEach(function (sp) {
+      var s = spotOf(en, sp.id), r = rateOf(s), op = s.att ? 0.16 + 0.84 * r : 0.08, mk = markers[sp.id];
+      mk.fill.setAttribute('fill-opacity', op.toFixed(2));
+      mk.text.setAttribute('class', op > 0.55 ? 'hi' : '');
+      mk.g.classList.toggle('sel', sp.id === state.sel);
+      mk.g.setAttribute('aria-pressed', sp.id === state.sel ? 'true' : 'false');
+      mk.g.setAttribute('aria-label', sp.id + '番 ' + sp.name + ' ' + (s.att ? s.att + '本中' + s.made + '本入った ' + pct(r) : '未記録'));
+
+      var re = erows[sp.id];
+      re.n.innerHTML = ''; re.n.appendChild(document.createTextNode(sp.name));
+      var k = document.createElement('small'); k.textContent = KL[sp.kind]; re.n.appendChild(k);
+      re.d.textContent = s.att ? pct(r) + (s.att >= state.roster.target ? ' ・ 打ち終えた' : ' ・ あと' + (state.roster.target - s.att) + '本') : '未記録';
+      re.row.setAttribute('aria-current', sp.id === state.sel ? 'true' : 'false');
+      if (document.activeElement !== re.im) re.im.value = s.att ? s.made : '';
+      if (document.activeElement !== re.ia) re.ia.value = s.att ? s.att : '';
+      re.im.disabled = ro; re.ia.disabled = ro;
+    });
+
+    var sel = SPOTS[state.sel - 1], sd = spotOf(en, state.sel);
+    $('pnum').textContent = sel.id; $('pnum').className = 'badge k' + sel.kind;
+    $('pname').textContent = sel.name;
+    $('pmeta').textContent = KL[sel.kind] + ' ・ ' + (sd.att ? sd.att + '本中' + sd.made + '本入った' : 'まだ打っていません');
+    $('prate').textContent = pct(rateOf(sd));
+    $('makeN').textContent = sd.made; $('missN').textContent = sd.att - sd.made;
+    ['makeBtn', 'missBtn', 'makeMinus', 'missMinus'].forEach(function (id) { $(id).disabled = ro; });
+
+    var w = $('del'); w.textContent = '';
+    if (en && !ro) {
+      if (!state.confirmDel) {
+        w.appendChild(btn('この部員のこの日の記録を消す', 'linkbtn', function () { state.confirmDel = true; renderRecDel(); }));
+      } else { renderRecDel(); }
+    }
+  }
+  function renderRecDel() {
+    var w = $('del'); w.textContent = '';
+    var en = entryOf(state.date, state.member);
+    if (!en) return;
+    if (!state.confirmDel) {
+      w.appendChild(btn('この部員のこの日の記録を消す', 'linkbtn', function () { state.confirmDel = true; renderRecDel(); }));
+      return;
+    }
+    var m = document.createElement('span'); m.textContent = '8スポットの記録を消します。'; w.appendChild(m);
+    w.appendChild(btn('消す', 'danger', function () {
+      mutate(state.date, state.member, function (e) { SPOTS.forEach(function (sp) { e[sp.id] = { made: 0, att: 0 }; }); });
+    }));
+    w.appendChild(btn('やめる', 'linkbtn', function () { state.confirmDel = false; renderRecDel(); }));
+  }
+
+  function rankRow(it, extra) {
+    var r = el('div', 'rk', '<span class="rno"></span><span class="rname"><span class="n"></span><span class="d"></span></span><span class="rv"></span>');
+    r.querySelector('.rno').textContent = it.rank;
+    var n = r.querySelector('.n'); n.appendChild(document.createTextNode(it.m.name));
+    if (it.tie) { var t = document.createElement('span'); t.className = 'tag mute'; t.textContent = '同率'; n.appendChild(t); }
+    if (extra && extra.duty) { var d = document.createElement('span'); d.className = 'tag warn'; d.textContent = extra.duty; n.appendChild(d); }
+    r.querySelector('.d').textContent = '入った ' + it.made + ' / 打った ' + it.att + (extra && extra.note ? ' ・ ' + extra.note : '') + (it.att ? ' ・ ' + groupLine(it.groups) : '');
+    r.querySelector('.rv').textContent = it.avg.toFixed(1) + '%';
+    return r;
+  }
+
+  function renderRank() {
+    $('modeDay').setAttribute('aria-pressed', state.rankMode === 'day' ? 'true' : 'false');
+    $('modeAll').setAttribute('aria-pressed', state.rankMode === 'all' ? 'true' : 'false');
+    var has = state.roster.members.length > 0;
+    var items = state.rankMode === 'day' ? dayItems(state.date) : cumItems();
+    var showBody = has && items.length > 0;
+    $('rankEmpty').hidden = showBody;
+    $('rankBody').hidden = !showBody;
+    $('matrixSec').hidden = !has;
+    if (!showBody) {
+      $('rankEmptyText').textContent = !has ? '部員を登録すると、ここに順位が出ます。' : 'まだ記録がありません。「記録」から本数を入力すると、通算の順位が出ます。';
+    }
+    var list = $('rankList'); list.textContent = '';
+    var duties = state.roster.duties;
+    $('dutySec').hidden = state.rankMode !== 'day';
+    var juice = $('juice'); juice.hidden = true; juice.textContent = '';
+    if (showBody) {
+      if (state.rankMode === 'day') {
+        $('rankTitle').textContent = dateLabel(state.date) + ' の順位';
+        var ds = dutySlots(items, duties);
+        items.forEach(function (it) {
+          list.appendChild(rankRow(it, { duty: ds.assigned[it.m.id], note: it.reported ? '' : '未報告(0%で計算)' }));
+        });
+        var sl = $('slots'); sl.textContent = '';
+        ds.slots.forEach(function (s) {
+          var row = el('div', 'slot', '<span class="sl"><b></b><small></small></span><span class="sw"></span>');
+          row.querySelector('b').textContent = s.duty;
+          row.querySelector('small').textContent = s.idx === 0 ? '最下位' : '下から' + (s.idx + 1) + '番目';
+          var sw = row.querySelector('.sw');
+          if (s.tie) { sw.className = 'sw tie'; sw.textContent = s.names.join('・') + ' が同率。ここから決めます'; }
+          else sw.textContent = s.names[0];
+          sl.appendChild(row);
+        });
+        var anyReported = items.some(function (x) { return x.reported; });
+        $('dutySec').hidden = !anyReported;
+        $('rankHint').textContent = anyReported
+          ? 'この日の記録がない部員は、0%として順位に入ります。'
+          : 'この日はまだ記録がありません。「記録」から本数を入力すると、順位と当番が出ます。';
+      } else {
+        $('rankTitle').textContent = '通算の順位(記録のある' + allDates().length + '日)';
+        items.forEach(function (it) { list.appendChild(rankRow(it, { note: it.days + '日分' })); });
+        $('rankHint').textContent = '日ごとの平均確率の平均です。欠席した日は0%として数えます。';
+        if (items.length >= 2) {
+          var top = items.filter(function (x) { return x.rank === 1; }).map(function (x) { return x.m.name; });
+          var low = items.filter(function (x) { return key6(x.avg) === key6(items[items.length - 1].avg); }).map(function (x) { return x.m.name; });
+          if (top.length !== items.length) {
+            var p1 = document.createElement('p'); p1.innerHTML = '<b>ジュースをおごる人</b>';
+            var p2 = document.createElement('p'); p2.textContent = '最下位 ' + low.join('・') + ' が、1位 ' + top.join('・') + ' におごります。';
+            juice.appendChild(p1); juice.appendChild(p2);
+            if (top.length > 1 || low.length > 1) {
+              var p3 = document.createElement('p'); p3.className = 'd'; p3.textContent = '同率の場合は、話し合いやジャンケンなどで決めてください。'; juice.appendChild(p3);
+            }
+            juice.hidden = false;
+          }
+        }
+      }
+    }
+    renderMatrix();
+  }
+
+  function renderMatrix() {
+    var t = $('matrix'); t.textContent = '';
+    var head = '<thead><tr><th>部員</th>' + SPOTS.map(function (sp) {
+      return '<th title="' + sp.name + '"><span class="badge k' + sp.kind + '">' + sp.id + '</span></th>';
+    }).join('') + '<th>2P</th><th>3P</th></tr></thead>';
+    var body = document.createElement('tbody');
+    state.roster.members.forEach(function (m) {
+      var tot = memberTotals(m.id);
+      var tr = document.createElement('tr'), th = document.createElement('td'); th.textContent = m.name; tr.appendChild(th);
+      var cells = SPOTS.map(function (sp) { return tot.spots[sp.id]; }).concat([tot.groups[2], tot.groups[3]]);
+      cells.forEach(function (c) {
+        var td = document.createElement('td');
+        if (c.att) {
+          var r = c.made / c.att, tint = document.createElement('i'); tint.className = 'tint'; tint.style.opacity = (0.06 + 0.5 * r).toFixed(2);
+          td.appendChild(tint);
+          var sp = document.createElement('span'); sp.textContent = pct(r); td.appendChild(sp);
+        } else { var d = document.createElement('span'); d.textContent = '–'; td.appendChild(d); }
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+    t.innerHTML = head; t.appendChild(body);
+  }
+
+  function fixPM() {
+    if (!memberById(state.pm)) {
+      state.pm = memberById(state.member) ? state.member : (state.roster.members.length ? state.roster.members[0].id : null);
+    }
+  }
+  function renderMe() {
+    var has = state.roster.members.length > 0;
+    $('meEmpty').hidden = has || !state.loaded;
+    $('meBody').hidden = !has;
+    if (!has) return;
+    fixPM();
+    var box = $('pmembers'); box.textContent = '';
+    state.roster.members.forEach(function (mm) {
+      var b = el('button', 'chip'); b.type = 'button'; b.textContent = mm.name;
+      b.setAttribute('aria-pressed', mm.id === state.pm ? 'true' : 'false');
+      b.addEventListener('click', function () { state.pm = mm.id; render(); });
+      box.appendChild(b);
+    });
+    var who = memberById(state.pm), tot = memberTotals(state.pm), days = tot.days, nd = days.length;
+    var made = 0, att = 0;
+    SPOTS.forEach(function (sp) { made += tot.spots[sp.id].made; att += tot.spots[sp.id].att; });
+    var avg = nd ? days.reduce(function (a, d) { return a + d.avg; }, 0) / nd : 0;
+    $('meLabel').textContent = who.name + ' の通算の平均確率';
+    $('meAvg').textContent = avg.toFixed(1);
+    $('meDays').textContent = nd + '日';
+    $('meMA').textContent = made + ' / ' + att;
+    renderGroups($('meGrp'), tot.groups);
+
+    var team = teamSpotTotals(), j = judge(tot.spots), strongIds = {}, weakIds = {};
+    j.strong.forEach(function (x) { strongIds[x.sp.id] = true; });
+    j.weak.forEach(function (x) { weakIds[x.sp.id] = true; });
+
+    SPOTS.forEach(function (sp) {
+      var s = tot.spots[sp.id], r = rateOf(s), op = s.att ? 0.16 + 0.84 * r : 0.08, m = pmarkers[sp.id];
+      m.fill.setAttribute('fill-opacity', op.toFixed(2));
+      m.text.setAttribute('class', op > 0.55 ? 'hi' : '');
+      m.g.setAttribute('aria-label', sp.id + '番 ' + sp.name + ' ' + (s.att ? s.att + '本中' + s.made + '本入った ' + pct(r) : '未記録'));
+    });
+
+    var rows = $('meRows'); rows.textContent = '';
+    SPOTS.forEach(function (sp) {
+      var s = tot.spots[sp.id], r = rateOf(s), t = team[sp.id], tr = t.att ? t.made / t.att : null;
+      var row = el('div', 'srow', '<span class="badge k' + sp.kind + '">' + sp.id + '</span><span class="rname"><span class="n"></span><span class="d"></span></span><span class="rv"></span><span class="sbar"><i></i><u></u></span>');
+      var n = row.querySelector('.n'); n.appendChild(document.createTextNode(sp.name));
+      var tag = function (txt, cls) { var x = document.createElement('span'); x.className = 'tag ' + cls; x.textContent = txt; n.appendChild(x); };
+      if (strongIds[sp.id]) tag('得意', 'good');
+      else if (weakIds[sp.id]) tag('苦手', 'warn');
+      else if (s.att < MIN_ATT) tag('データ不足', 'mute');
+      var d = s.att ? s.made + ' / ' + s.att + '本' : '未記録';
+      if (s.att && s.att < MIN_ATT) d += ' ・ あと' + (MIN_ATT - s.att) + '本で判定';
+      else if (s.att && s.att < 50) d += ' ・ 参考値';
+      if (tr !== null && s.att) d += ' ・ チーム平均 ' + pct(tr);
+      row.querySelector('.d').textContent = d;
+      row.querySelector('.rv').textContent = s.att ? pct(r) : '–';
+      row.querySelector('.sbar i').style.width = (r * 100).toFixed(1) + '%';
+      var u = row.querySelector('.sbar u');
+      if (tr === null) u.hidden = true; else u.style.left = (tr * 100).toFixed(1) + '%';
+      rows.appendChild(row);
+    });
+    $('meHint').textContent = '1スポットで' + MIN_ATT + '本以上たまると、得意・苦手を判定します。黒い線はチーム平均です。';
+
+    var v = $('meVerdict'); v.textContent = '';
+    var line = function (txt, cls) { var p = document.createElement('p'); if (cls) p.className = cls; p.textContent = txt; v.appendChild(p); };
+    var fmt = function (arr) { return arr.map(function (x) { return x.sp.name + '(' + pct(x.r) + ')'; }).join('、'); };
+    line('得意・苦手', 'ct');
+    if (!att) {
+      line('まだ記録がありません。「記録」から本数を入れると、ここに出ます。');
+    } else {
+      if (j.judged.length < 2) {
+        line('いま判定できるのは ' + j.judged.length + ' / 8スポットです。');
+        line('1スポット' + MIN_ATT + '本以上たまると判定します。' + state.roster.target + '本ずつ打つと、' + Math.ceil(MIN_ATT / state.roster.target) + '日分で届きます。', 'd');
+      } else if (j.flat) {
+        line('いまのところ、スポット間に大きな差はありません(' + pct(j.min) + '〜' + pct(j.max) + ')。');
+      } else {
+        if (j.strong.length) line('得意: ' + fmt(j.strong));
+        if (j.weak.length) line('苦手: ' + fmt(j.weak));
+        if (!j.strong.length && !j.weak.length) line('平均から大きく離れたスポットはありません。');
+        line(j.judged.length + ' / 8スポットで判定しています(1スポット' + MIN_ATT + '本以上)。', 'd');
+      }
+      var g2 = tot.groups[2], g3 = tot.groups[3];
+      if (g2.att >= 30 && g3.att >= 30) {
+        var diff = (g3.made / g3.att - g2.made / g2.att) * 100;
+        if (Math.abs(diff) >= 10) line('3Pは2Pより ' + Math.abs(Math.round(diff)) + 'ポイント' + (diff < 0 ? '低い' : '高い') + 'です。');
+      }
+      if (nd >= 4) {
+        var rc = days.slice(-3), ea = days.slice(0, -3);
+        var ra = rc.reduce(function (a, x) { return a + x.avg; }, 0) / rc.length, eb = ea.reduce(function (a, x) { return a + x.avg; }, 0) / ea.length, df = ra - eb;
+        line('直近3回の平均は ' + ra.toFixed(1) + '%、それ以前は ' + eb.toFixed(1) + '%。' + (Math.abs(df) < 2 ? 'ほぼ変わっていません。' : Math.abs(df).toFixed(1) + 'ポイント' + (df > 0 ? '上がっています。' : '下がっています。')), 'd');
+      } else {
+        line('記録が4日分たまると、直近とそれ以前を比べた上達の傾向も出ます。', 'd');
+      }
+    }
+  }
+
+  function renderTeam(ro) {
+    $('bkHint').textContent = state.mode === 'fb'
+      ? '記録は、パスワードを知っている人全員で共有されます。ときどきコピーして、保管しておくと安心です。「復元」を実行すると、全員の記録が置き換わるので気をつけてください。'
+      : '記録は、このスマホのブラウザに保存されます。ブラウザのデータを消すと記録も消えるので、ときどきコピーして、LINEのKeepなどに貼って保管してください。';
+    $('addBtn').disabled = ro; $('names').disabled = ro; $('duties').disabled = ro; $('bkRestore').disabled = ro;
+    document.querySelectorAll('[data-n]').forEach(function (b) {
+      b.setAttribute('aria-pressed', +b.getAttribute('data-n') === state.roster.target ? 'true' : 'false');
+      b.disabled = ro;
+    });
+    if (document.activeElement !== $('duties')) $('duties').value = state.roster.duties.join('、');
+    var list = $('roster');
+    if (list.contains(document.activeElement)) return;
+    list.textContent = '';
+    state.roster.members.forEach(function (m) {
+      var row = el('div', 'mrow');
+      var inp = document.createElement('input'); inp.type = 'text'; inp.value = m.name; inp.maxLength = 30; inp.disabled = ro;
+      inp.setAttribute('aria-label', '部員名');
+      inp.addEventListener('change', function () {
+        var v = inp.value.trim().slice(0, 30);
+        if (!v) { inp.value = m.name; return; }
+        m.name = v; saveRoster();
+      });
+      row.appendChild(inp);
+      var act = document.createElement('div');
+      if (!ro) {
+        if (state.confirmRm === m.id) {
+          act.appendChild(btn('外す', 'danger', function () {
+            state.roster.members = state.roster.members.filter(function (x) { return x.id !== m.id; });
+            state.confirmRm = null; fixMember(); saveRoster();
+          }));
+          act.appendChild(btn('やめる', 'linkbtn', function () { state.confirmRm = null; render(); }));
+        } else {
+          act.appendChild(btn('外す', 'linkbtn', function () { state.confirmRm = m.id; render(); }));
+        }
+      }
+      row.appendChild(act);
+      list.appendChild(row);
+    });
+    $('rosterHint').textContent = state.roster.members.length
+      ? '部員を外すと、順位の対象から外れます。名前は書き換えられます。'
+      : '部員はまだいません。左の欄から追加してください。';
+  }
+
+  /* ---------- controls ---------- */
+  function resultText() {
+    var items = dayItems(state.date);
+    if (!items.some(function (x) { return x.reported; })) return '';
+    var ds = dutySlots(items, state.roster.duties), L = ['8スポットシュート ' + dateLabel(state.date)];
+    items.forEach(function (it) {
+      L.push(it.rank + '位 ' + it.m.name + ' ' + it.avg.toFixed(1) + '%' +
+        (it.reported ? '(' + groupLine(it.groups) + ')' : '(未報告)') +
+        (ds.assigned[it.m.id] ? ' → ' + ds.assigned[it.m.id] : ''));
+    });
+    var seen = {}, order = [];
+    ds.slots.filter(function (x) { return x.tie; }).forEach(function (x) {
+      var k = x.names.join('・'); if (!seen[k]) { seen[k] = []; order.push(k); } seen[k].push(x.duty);
+    });
+    if (order.length) {
+      L.push('');
+      order.forEach(function (k) { L.push('同率のため相談: ' + k + '(' + seen[k].join('・') + ')'); });
+    }
+    return L.join('\n');
+  }
+  function backupText() { return JSON.stringify({ v: 1, roster: state.roster, days: state.days }); }
+  function restoreFrom(text) {
+    if (!canEdit()) return { ok: false, msg: '閲覧用のパスワードでは、復元できません。' };
+    if (!text || text.length > 3000000) return { ok: false, msg: '貼り付けた文章が空か、大きすぎます。' };
+    var o;
+    try { o = JSON.parse(text); } catch (e) { return { ok: false, msg: 'バックアップの文章を読み取れませんでした。最初から最後まで、そのまま貼り付けてください。' }; }
+    if (!o || typeof o !== 'object' || !o.roster || !o.days) return { ok: false, msg: 'バックアップの形式が違います。' };
+    var roster = normRoster(o.roster), days = {};
+    Object.keys(o.days).forEach(function (k) { if (DATE_RE.test(k)) days[k] = normDay(o.days[k], k); });
+    if (!roster.members.length && !Object.keys(days).length) return { ok: false, msg: 'バックアップに部員も記録も入っていません。' };
+    var oldDates = Object.keys(state.days);
+    state.roster = roster; state.days = days; state.pm = null; fixMember();
+    queueSave('roster');
+    if (state.mode === 'fb') {
+      var all = {};
+      oldDates.concat(Object.keys(days)).forEach(function (k) { all[k] = true; });
+      Object.keys(all).forEach(function (k) { queueSave('d:' + k); });
+    }
+    return { ok: true, msg: roster.members.length + '人、' + Object.keys(days).length + '日分の記録を復元しました。' };
+  }
+  function showOut(text, okMsg) {
+    var box = $('outBox'), sec = $('outSec');
+    box.value = text; sec.hidden = false;
+    var done = function () { $('outMsg').textContent = okMsg; };
+    var fallback = function () { box.focus(); box.select(); $('outMsg').textContent = '自動でコピーできませんでした。上の文章を長押しして、コピーしてください。'; };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+    } catch (e) { fallback(); }
+    try { sec.scrollIntoView({ block: 'center' }); } catch (e) {}
+  }
+
+  function setDate(v) { state.date = v; state.confirmDel = false; render(); }
+  function shift(n) {
+    var p = state.date.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2] + n), v = fmtDate(d);
+    if (v > today()) return;
+    setDate(v);
+  }
+  $('prev').addEventListener('click', function () { shift(-1); });
+  $('next').addEventListener('click', function () { shift(1); });
+  $('todayBtn').addEventListener('click', function () { setDate(today()); });
+  $('date').addEventListener('change', function (e) {
+    var v = e.target.value;
+    if (DATE_RE.test(v) && v <= today()) setDate(v); else render();
+  });
+  document.querySelectorAll('.tab').forEach(function (b) {
+    b.addEventListener('click', function () { setTab(b.getAttribute('data-tab')); });
+  });
+  $('goTeam').addEventListener('click', function () { setTab('team'); });
+  $('goTeam2').addEventListener('click', function () { setTab('team'); });
+  $('modeDay').addEventListener('click', function () { state.rankMode = 'day'; render(); });
+  $('modeAll').addEventListener('click', function () { state.rankMode = 'all'; render(); });
+  $('makeBtn').addEventListener('click', function () { tap('make'); });
+  $('missBtn').addEventListener('click', function () { tap('miss'); });
+  $('makeMinus').addEventListener('click', function () { tap('unmake'); });
+  $('missMinus').addEventListener('click', function () { tap('unmiss'); });
+
+  $('addBtn').addEventListener('click', function () {
+    if (!canEdit()) return;
+    var names = $('names').value.split(/[\n,、，]+/).map(function (s) { return s.trim().slice(0, 30); }).filter(Boolean);
+    var have = {}; state.roster.members.forEach(function (m) { have[m.name] = true; });
+    var added = 0;
+    names.forEach(function (n) {
+      if (have[n] || state.roster.members.length >= 80) return;
+      have[n] = true; added++;
+      state.roster.members.push({ id: newId(), name: n, since: today() });
+    });
+    $('names').value = '';
+    if (added) { fixMember(); saveRoster(); }
+  });
+  document.querySelectorAll('[data-n]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (!canEdit()) return;
+      state.roster.target = +b.getAttribute('data-n'); saveRoster();
+    });
+  });
+  $('duties').addEventListener('change', function () {
+    if (!canEdit()) return;
+    var du = $('duties').value.split(/[,、，\n]+/).map(function (s) { return s.trim().slice(0, 12); }).filter(Boolean).slice(0, 12);
+    state.roster.duties = du.length ? du : DEFAULT_DUTIES.slice();
+    saveRoster();
+  });
+
+  $('copyResult').addEventListener('click', function () {
+    var t = resultText();
+    if (t) showOut(t, 'コピーしました。LINEなどに貼り付けて送れます。');
+  });
+  $('bkCopy').addEventListener('click', function () {
+    showOut(backupText(), 'バックアップをコピーしました。LINEのKeepなどに貼り付けて保管してください。');
+  });
+  $('outClose').addEventListener('click', function () { $('outSec').hidden = true; });
+  $('bkRestore').addEventListener('click', function () {
+    var msg = $('bkMsg'), b = $('bkRestore');
+    if (!state.confirmRestore) {
+      state.confirmRestore = true; b.textContent = '本当に置き換える(もう一度押す)';
+      msg.textContent = '復元すると、いまの記録は、バックアップの内容に置き換わります。';
+      return;
+    }
+    state.confirmRestore = false; b.textContent = '貼り付けた内容で復元する';
+    var r = restoreFrom($('bkIn').value.trim());
+    msg.textContent = r.msg;
+    if (r.ok) { $('bkIn').value = ''; render(); }
+  });
+
+  $('loginBtn').addEventListener('click', signIn);
+  $('pwInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') signIn(); });
+  $('logoutBtn').addEventListener('click', function () { if (backend && backend.auth) backend.auth.signOut(); });
+
+  render();
+  initBackend();
+})();
+</script>
+</body>
+</html>
