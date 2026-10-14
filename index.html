@@ -630,11 +630,21 @@ var FIREBASE_ACCOUNTS = { editor: 'shot-editor@example.com', viewer: 'shot-viewe
     var items = [];
     state.roster.members.forEach(function (m) {
       var en = entryOf(date, m.id);
-      if (!en && m.since > date) return;
+      if (!en) return;
       var st = entryStats(en);
-      items.push({ m: m, avg: st.avg, made: st.made, att: st.att, reported: !!en, groups: groupsOf(en) });
+      if (!st.att) return; // no shots that day = did not take part
+      items.push({ m: m, avg: st.avg, made: st.made, att: st.att, reported: true, groups: groupsOf(en) });
     });
     return assignRanks(items);
+  }
+  function dayAbsent(date) {
+    var names = [];
+    state.roster.members.forEach(function (m) {
+      var en = entryOf(date, m.id);
+      if (!en && m.since > date) return;
+      if (!en || !entryStats(en).att) names.push(m.name);
+    });
+    return names;
   }
   function allDates() { return Object.keys(state.days).sort(); }
   function cumItems() {
@@ -1073,7 +1083,10 @@ var FIREBASE_ACCOUNTS = { editor: 'shot-editor@example.com', viewer: 'shot-viewe
     $('rankBody').hidden = !showBody;
     $('matrixSec').hidden = !has;
     if (!showBody) {
-      $('rankEmptyText').textContent = !has ? '部員を登録すると、ここに順位が出ます。' : 'まだ記録がありません。「記録」から本数を入力すると、通算の順位が出ます。';
+      $('rankEmptyText').textContent = !has ? '部員を登録すると、ここに順位が出ます。'
+        : state.rankMode === 'day' ? 'この日はまだ記録がありません。「記録」から本数を入力すると、順位と当番が出ます。'
+        : 'まだ記録がありません。「記録」から本数を入力すると、通算の順位が出ます。';
+      $('dutySec').hidden = true;
     }
     var list = $('rankList'); list.textContent = '';
     var duties = state.roster.duties;
@@ -1096,11 +1109,10 @@ var FIREBASE_ACCOUNTS = { editor: 'shot-editor@example.com', viewer: 'shot-viewe
           else sw.textContent = s.names[0];
           sl.appendChild(row);
         });
-        var anyReported = items.some(function (x) { return x.reported; });
-        $('dutySec').hidden = !anyReported;
-        $('rankHint').textContent = anyReported
-          ? 'この日の記録がない部員は、0%として順位に入ります。'
-          : 'この日はまだ記録がありません。「記録」から本数を入力すると、順位と当番が出ます。';
+        $('dutySec').hidden = false;
+        var ab = dayAbsent(state.date);
+        $('rankHint').textContent = '本数を入力した部員だけが、順位と当番の対象です。' +
+          (ab.length ? '記録のない部員(対象外): ' + ab.join('・') : '');
       } else {
         $('rankTitle').textContent = '通算の順位(記録のある' + allDates().length + '日)';
         items.forEach(function (it) { list.appendChild(rankRow(it, { note: it.days + '日分' })); });
@@ -1287,7 +1299,7 @@ var FIREBASE_ACCOUNTS = { editor: 'shot-editor@example.com', viewer: 'shot-viewe
   /* ---------- controls ---------- */
   function resultText() {
     var items = dayItems(state.date);
-    if (!items.some(function (x) { return x.reported; })) return '';
+    if (!items.length) return '';
     var ds = dutySlots(items, state.roster.duties), L = ['8スポットシュート ' + dateLabel(state.date)];
     items.forEach(function (it) {
       L.push(it.rank + '位 ' + it.m.name + ' ' + it.avg.toFixed(1) + '%' +
@@ -1302,6 +1314,8 @@ var FIREBASE_ACCOUNTS = { editor: 'shot-editor@example.com', viewer: 'shot-viewe
       L.push('');
       order.forEach(function (k) { L.push('同率のため相談: ' + k + '(' + seen[k].join('・') + ')'); });
     }
+    var ab = dayAbsent(state.date);
+    if (ab.length) { L.push(''); L.push('不参加(記録なし): ' + ab.join('・')); }
     return L.join('\n');
   }
   function backupText() { return JSON.stringify({ v: 1, roster: state.roster, days: state.days }); }
